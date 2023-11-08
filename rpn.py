@@ -8,12 +8,15 @@ class RPN:
         pass
         
     def checkctype(self, c):
-        """Verifing type of char c
-        returning: 
-        0 type not found
-        1 is numeber
-        2 is letter (funct)
-        3 is comma (function argument separator)
+        """Verifing type of char c\n
+        returning: \n
+        0 type not found\n
+        1 is numeber\n
+        2 is letter (funct)\n
+        3 is comma (function argument separator)\n
+        4 is operator ["-", "+", "*", "/", "%", "^"]\n
+        5 is left parenthesis\n
+        6 is right parenthesis\n
         """
         numbers = ["0","1","2","3","4","5","6","7","8","9", "."]
         operators = ["-", "+", "*", "/", "%", "^"]
@@ -35,6 +38,11 @@ class RPN:
         return 0
     
     def strToList(self, equasion):
+        """
+        Method coverts string into list\n
+        eg: str("2+5-4*sqrt(25,2)")\n
+        return: [2.0, "+", 5.0, "-", 4.0, "*", "sqrt", "(", 25.0, ",", 2.0, ")"]\n
+        """
         out = list()
         ctype = 0
         t = ""
@@ -96,6 +104,9 @@ class RPN:
         return out
     
     def getPrior(self, c):
+        """
+        Returns priority of operator to compare
+        """
         match c:
             case "(":
                 return 0
@@ -115,17 +126,28 @@ class RPN:
                 return 3
         
     def listToRPN(self, l):
+        """
+        Method converts list returned by strToList() to list in RPN notation\n
+        eg: [2.0, "+" 3.0] to [2.0, 3.0, "+"]\n
+        """
         output = list()
         stack = list()
         
+        # for every element from list
         for i, e in enumerate(l):
-                        
+            
+            # if float, put on output    
             if type(e) == float:
                 output.append(e)
                 continue
+            
+            # if function, put on stack
             if self.function_list.count(e):
                 stack.append(e)
                 continue
+            
+            # if comma, take from stack and put on output until left parenthesis on stack will be found
+            # if left parenthesis will not be found, equation has wrong parenthesis count
             if e == ",":
                 while stack[-1] != "(":
                     try:
@@ -133,9 +155,14 @@ class RPN:
                     except:
                         return "equasion error"
                 continue
+            
+            # if left parenthesis, put on stack
             if e == "(":
                 stack.append(e)
                 continue
+            
+            # if right parenthesis, take from stack and put on output until left parenthesis on stack will be found
+            # if left parenthesis will not be found, equation has wrong parenthesis count
             if e == ")":
                 while stack[-1] != "(":
                     try:
@@ -143,8 +170,13 @@ class RPN:
                     except:
                         return "equasion error"
                 stack.pop()
-                if self.function_list.count(stack[-1]):
-                    output.append(stack.pop())
+                
+                # if function on stack, take that function from stack and put on output
+                if len(stack):
+                    if self.function_list.count(stack[-1]):
+                        output.append(stack.pop())
+                    
+            # if operator, take operators from stack until operator on stack will have higher or equal priority
             if self.checkctype(e) == 4:
                 prio = self.getPrior(e)
                 while True:
@@ -163,6 +195,7 @@ class RPN:
                         stack.append(e)
                         break
         
+        # until stack will be empty take from stack and put on output
         while True:
             try:
                 output.append(stack.pop())
@@ -171,17 +204,27 @@ class RPN:
 
         return output
 
-    def count(self, input):
+    def count(self, quation):
+        """
+        Method counts result of equation in str\n
+        Returns result of equation as float 
+        """
 
-        arglist = self.strToList(input)
-        onplist = self.listToRPN(arglist)
+        arglist = self.strToList(quation)
+        rpnlist = self.listToRPN(arglist)
 
         stack = list()
-        for c in onplist:
+        
+        # for every element from rpn list
+        for c in rpnlist:
             try:
+                
+                # if float, put on stack
                 if type(c) == float:
                     stack.append(c)
                     continue
+                
+                # if operator, take arguments from stack and put result on stack
                 if self.checkctype(c) == 4:
                     a = stack.pop()
                     b = stack.pop()
@@ -193,10 +236,14 @@ class RPN:
                         case "*":
                             stack.append(b * a)
                         case "/":
+                            if a == 0:
+                                return False
                             stack.append(b / a)
                         case "^":
                             stack.append(math.pow(b, a))
                     continue
+                
+                # it's fuction, take arguments from stack and put result on stack
                 match c:
                     case "sqrt":
                         stack.append(math.sqrt(stack.pop()))
